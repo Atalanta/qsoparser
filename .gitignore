@@ -1,0 +1,16 @@
+# Rust artefacts
+/target
+
+# macOS Finder metadata
+.DS_Store
+
+## Various flavors of editor grot
+# VisualStudio Code
+.vscode/
+# IntelliJ and friends
+.idea/
+
+# Emacs
+\#*#
+.\#*
+*~
