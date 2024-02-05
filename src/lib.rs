@@ -1,37 +1,39 @@
-
+use std::str::FromStr;
 use regex::Regex;
 
-#[derive(PartialEq, Debug, Default)]
-pub struct ParseResult {
-    callsign: Option<String>,
-}
+#[derive(Debug, PartialEq, Eq)]
+struct Callsign(String);
 
-impl ParseResult {
-    pub fn new() -> Self {
-        ParseResult::default()
-    }
+#[derive(Debug, PartialEq, Eq)]
+struct ParseCallsignError;
 
-    pub fn parse_line(mut self, line: &str) -> Self {
+impl FromStr for Callsign {
+    type Err = ParseCallsignError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
         let pattern = Regex::new(r"(?i)([GM][0-8]|2E[01])[A-Z]{2,3}").unwrap();
-        if let Some(match_) = pattern.find(line) {
-            self.callsign = Some(match_.as_str().to_uppercase());
+        if pattern.is_match(s) {
+            Ok(Callsign(s.to_uppercase()))
+        } else {
+            Err(ParseCallsignError)
         }
-        self
     }
 }
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn parses_english_callsign_correctly() {
-        let result = ParseResult::new().parse_line("g4emm");
-        assert_eq!(result, ParseResult {callsign: Some("G4EMM".to_string())});
+        let input = "g4emm";
+        let result = input.parse::<Callsign>();
+        assert_eq!(result, Ok(Callsign("G4EMM".to_string())));
     }
 
     #[test]
     fn passes_over_anything_that_isnt_callsign() {
-        let result = ParseResult::new().parse_line("blank");
-        assert_eq!(result, ParseResult {callsign: None});
+        let result = "notacall".parse::<Callsign>();
+        assert!(result.is_err());
     }
 }
