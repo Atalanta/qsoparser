@@ -1,5 +1,7 @@
+use nom::character::complete::{char, satisfy};
+use nom::multi::many_m_n;
+use nom::{combinator::recognize, sequence::tuple, IResult};
 use std::str::FromStr;
-use regex::Regex;
 
 #[derive(Debug, PartialEq, Eq)]
 struct Callsign(String);
@@ -7,15 +9,21 @@ struct Callsign(String);
 #[derive(Debug, PartialEq, Eq)]
 struct ParseCallsignError;
 
+fn callsign_parser(notes: &str) -> IResult<&str, &str> {
+    recognize(tuple((
+        char('g'),
+        satisfy(|c: char| c.is_digit(10) && c != '9'),
+        many_m_n(2, 3, satisfy(|c: char| c.is_alphabetic())),
+    )))(notes)
+}
+
 impl FromStr for Callsign {
     type Err = ParseCallsignError;
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let pattern = Regex::new(r"(?i)([GM][0-8]|2E[01])[A-Z]{2,3}").unwrap();
-        if pattern.is_match(s) {
-            Ok(Callsign(s.to_uppercase()))
-        } else {
-            Err(ParseCallsignError)
+    fn from_str(notes: &str) -> Result<Self, Self::Err> {
+        match callsign_parser(notes) {
+            Ok((_, callsign)) => Ok(Callsign(callsign.to_string())),
+            Err(_) => Err(ParseCallsignError),
         }
     }
 }
@@ -26,9 +34,9 @@ mod tests {
 
     #[test]
     fn parses_english_callsign_correctly() {
-        let input = "g4emm";
-        let result = input.parse::<Callsign>();
-        assert_eq!(result, Ok(Callsign("G4EMM".to_string())));
+        let notes = "g4emm";
+        let result = notes.parse::<Callsign>();
+        assert_eq!(result, Ok(Callsign("g4emm".to_string())));
     }
 
     #[test]
