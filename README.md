@@ -7,8 +7,8 @@ into a struct of useful fields suitable for logging, exporting as ADIF, or subse
 
 ### Callsign
 
-Will match (most) current English callsigns.  This is a naive regex, for proof of concept, and is not intended to be
-comprehensive.
+Will match only G-based English callsigns.  This uses `nom` functionality, which allow it to be easily extended to other
+callsigns.
 
 ## Planned Parsers
 
