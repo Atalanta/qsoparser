@@ -1,21 +1,33 @@
-use nom::character::complete::alphanumeric1;
-use nom::combinator::{map, verify};
+use nom::character::complete::{alphanumeric1, char};
+use nom::combinator::{map, opt, verify};
+use nom::sequence::{preceded, tuple};
 use nom::IResult;
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct Callsign(String);
-
+pub struct Callsign {
+    callsign: String,
+    suffix: Option<String>,
+}
 fn contains_both_letter_and_digit(input: &str) -> bool {
     let has_digit = input.chars().any(|c| c.is_ascii_digit());
     let has_alpha = input.chars().any(|c| c.is_alphabetic());
     has_digit && has_alpha
 }
 pub fn callsign_parser(input: &str) -> IResult<&str, Callsign> {
+    let parse_callsign = verify(alphanumeric1, contains_both_letter_and_digit);
+    let parse_suffix = opt(preceded(char('/'), alphanumeric1));
+
     map(
-        verify(alphanumeric1, contains_both_letter_and_digit),
-        |parsed_callsign: &str| Callsign(parsed_callsign.to_string()),
+        tuple((parse_callsign, parse_suffix)),
+        |(callsign, suffix): (&str, Option<&str>)| {
+            Callsign {
+                callsign: callsign.to_string(),
+                suffix: suffix.map(String::from),
+            }
+        }
     )(input)
 }
+
 
 #[cfg(test)]
 mod tests {
@@ -23,12 +35,7 @@ mod tests {
 
     #[test]
     fn simple_callsigns_are_correctly_parsed() {
-        let simple_callsigns = vec![
-            "g4emm",
-            "2e0ihm",
-            "m7dqd",
-            "gm8ofx",
-        ];
+        let simple_callsigns = vec!["g4emm", "2e0ihm", "m7dqd", "gm8ofx"];
 
         for input in simple_callsigns {
             let result = callsign_parser(input);
@@ -40,7 +47,7 @@ mod tests {
                 input
             );
             assert_eq!(
-                callsign.0, input,
+                callsign.callsign, input,
                 "Parsed callsign does not match input for: {}",
                 input
             );
@@ -49,37 +56,40 @@ mod tests {
 
     #[test]
     fn suffix_callsigns_are_correctly_parsed() {
-        let suffix_callsigns = vec![
-            "g4emm/p",
-            "2e0ihm/m",
-            "m7dqd/a",
-            "gm8ofx/qrp",
-            "lz1xn/mm",
-            "JG3TYS/3",
+        let test_cases = vec![
+            ("g4emm/p", "g4emm", Some("p")),
+            ("2e0ihm/m", "2e0ihm", Some("m")),
+            ("m7dqd/a", "m7dqd", Some("a")),
+            ("gm8ofx/qrp", "gm8ofx", Some("qrp")),
+            ("lz1xn/mm", "lz1xn", Some("mm")),
+            ("JG3TYS/3", "JG3TYS", Some("3")),
         ];
 
-        for input in suffix_callsigns {
+        for (input, expected_call, expected_suffix) in test_cases {
             let result = callsign_parser(input);
-            assert!(result.is_ok(), "Failed to parse valid callsign: {}", input);
+            assert!(result.is_ok(), "Failed to parse valid callsign with suffix: {}", input);
             let (remaining, callsign) = result.expect("Expected Ok, got Err");
+
             assert!(
                 remaining.is_empty(),
                 "Parser did not consume the entire input for: {}",
                 input
             );
             assert_eq!(
-                callsign.0, input,
-                "Parsed callsign does not match input for: {}",
+                callsign.callsign, expected_call,
+                "Parsed callsign part does not match input for: {}",
+                input
+            );
+            assert_eq!(
+                callsign.suffix, expected_suffix.map(String::from),
+                "Parsed suffix does not match input for: {}",
                 input
             );
         }
     }
     #[test]
     fn invalid_callsigns_are_correctly_identified() {
-        let invalid_callsigns = vec![
-            "notacall",
-            "12345",
-        ];
+        let invalid_callsigns = vec!["notacall", "12345"];
 
         for input in invalid_callsigns {
             let result = callsign_parser(input);

@@ -8,10 +8,10 @@ into a struct of useful fields suitable for logging, exporting as ADIF, or subse
 ### Callsign
 
 Assumes that word containing both letters and numbers is a callsign, and a word containing only letters or only numbers
-is not.  This will be insufficient once we add more parsers, and will need to be expanded, but it's good enough to match
+is not.  This may be insufficient once we add more parsers, and may well need to be expanded, but it's good enough to match
 most callsigns.
 
-Currently not implemented are prefixes and suffixes, eg MM0ASD/P or M/F5FGH - for which there is a failing test.
+Suffixes are also supported, but prefixes are not currently implemented.
 
 ## Planned Parsers
 
