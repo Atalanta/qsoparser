@@ -6,7 +6,7 @@ use nom::IResult;
 pub struct Callsign(String);
 
 fn contains_both_letter_and_digit(input: &str) -> bool {
-    let has_digit = input.chars().any(|c| c.is_digit(10));
+    let has_digit = input.chars().any(|c| c.is_ascii_digit());
     let has_alpha = input.chars().any(|c| c.is_alphabetic());
     has_digit && has_alpha
 }
@@ -22,58 +22,72 @@ mod tests {
     use super::*;
 
     #[test]
-    fn parses_english_full_callsign_correctly() {
-        let notes = "g4emm";
-        let result = callsign_parser(notes);
-        assert_eq!(result, Ok(("", Callsign("g4emm".to_string()))));
+    fn simple_callsigns_are_correctly_parsed() {
+        let simple_callsigns = vec![
+            "g4emm",
+            "2e0ihm",
+            "m7dqd",
+            "gm8ofx",
+        ];
+
+        for input in simple_callsigns {
+            let result = callsign_parser(input);
+            assert!(result.is_ok(), "Failed to parse valid callsign: {}", input);
+            let (remaining, callsign) = result.expect("Expected Ok, got Err");
+            assert!(
+                remaining.is_empty(),
+                "Parser did not consume the entire input for: {}",
+                input
+            );
+            assert_eq!(
+                callsign.0, input,
+                "Parsed callsign does not match input for: {}",
+                input
+            );
+        }
     }
 
     #[test]
-    fn parses_english_intermediate_callsign_correctly() {
-        let notes = "2e0ihm";
-        let result = callsign_parser(notes);
-        assert_eq!(result, Ok(("", Callsign("2e0ihm".to_string()))));
-    }
+    fn suffix_callsigns_are_correctly_parsed() {
+        let suffix_callsigns = vec![
+            "g4emm/p",
+            "2e0ihm/m",
+            "m7dqd/a",
+            "gm8ofx/qrp",
+            "lz1xn/mm",
+            "JG3TYS/3",
+        ];
 
-    #[test]
-    fn parses_english_foundation_callsign_correctly() {
-        let notes = "m7dqd";
-        let result = callsign_parser(notes);
-        assert_eq!(result, Ok(("", Callsign("m7dqd".to_string()))));
+        for input in suffix_callsigns {
+            let result = callsign_parser(input);
+            assert!(result.is_ok(), "Failed to parse valid callsign: {}", input);
+            let (remaining, callsign) = result.expect("Expected Ok, got Err");
+            assert!(
+                remaining.is_empty(),
+                "Parser did not consume the entire input for: {}",
+                input
+            );
+            assert_eq!(
+                callsign.0, input,
+                "Parsed callsign does not match input for: {}",
+                input
+            );
+        }
     }
-
     #[test]
-    fn parses_british_regional_callsign_correctly() {
-        let notes = "gm8ofx";
-        let result = callsign_parser(notes);
-        assert_eq!(result, Ok(("", Callsign("gm8ofx".to_string()))));
-    }
+    fn invalid_callsigns_are_correctly_identified() {
+        let invalid_callsigns = vec![
+            "notacall",
+            "12345",
+        ];
 
-    #[test]
-    fn parses_portable_and_other_suffixes() {
-        let notes = "g0qwe/p";
-        let result = callsign_parser(notes);
-        assert_eq!(result, Ok(("", Callsign("g0qwe/p".to_string()))));
-    }
-
-    #[test]
-    fn parses_travelling_prefixes() {
-        let notes = "g/f6tyu";
-        let result = callsign_parser(notes);
-        assert_eq!(result, Ok(("", Callsign("g/f6tyu".to_string()))));
-    }
-
-    #[test]
-    fn no_numbers_is_invalid() {
-        let notes = "notacall";
-        let result = callsign_parser(notes);
-        assert!(result.is_err());
-    }
-
-    #[test]
-    fn no_letters_is_invalid() {
-        let notes = "12345";
-        let result = callsign_parser(notes);
-        assert!(result.is_err());
+        for input in invalid_callsigns {
+            let result = callsign_parser(input);
+            assert!(
+                result.is_err(),
+                "Incorrectly parsed invalid callsign as valid: {}",
+                input
+            );
+        }
     }
 }
