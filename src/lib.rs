@@ -43,10 +43,24 @@ mod tests {
     }
 
     #[test]
+    fn parses_british_regional_callsign_correctly() {
+        let notes = "gm8ofx";
+        let result = callsign_parser(notes);
+        assert_eq!(result, Ok(("", Callsign("gm8ofx".to_string()))));
+    }
+
+    #[test]
     fn parses_portable_and_other_suffixes() {
         let notes = "g0qwe/p";
         let result = callsign_parser(notes);
         assert_eq!(result, Ok(("", Callsign("g0qwe/p".to_string()))));
+    }
+
+    #[test]
+    fn parses_travelling_prefixes() {
+        let notes = "g/f6tyu";
+        let result = callsign_parser(notes);
+        assert_eq!(result, Ok(("", Callsign("g/f6tyu".to_string()))));
     }
 
     #[test]
@@ -58,7 +72,7 @@ mod tests {
 
     #[test]
     fn no_letters_is_invalid() {
-        let notes = "notacall";
+        let notes = "12345";
         let result = callsign_parser(notes);
         assert!(result.is_err());
     }
